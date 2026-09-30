@@ -1,0 +1,257 @@
+// ============================================================
+// Nicky's Cafeteria — server (Homestead, FL)
+// Node.js + Express. DB: Postgres (DATABASE_URL) o SQLite local.
+// Ejecutar: npm install && node server.js
+// Env vars:
+//   PORT          puerto (default 3000)
+//   DATABASE_URL  si existe -> Postgres; si no -> SQLite local
+//   STORE_KEY     clave compartida para /tienda y APIs de tienda.
+//                 Si no se define, modo desarrollo (abierto, con aviso).
+// ============================================================
+
+const express = require("express");
+const path = require("path");
+const crypto = require("crypto");
+const db = require("./db");
+const suspend = require("./suspend");
+
+const PORT = process.env.PORT || 3000;
+const STORE_KEY = process.env.STORE_KEY || "";
+
+const app = express();
+app.use(express.json({ limit: "1mb" }));
+
+// Interruptor de suspensión del dueño (Portal) — antes de static y rutas
+app.use(suspend.middleware);
+suspend.registerAdmin(app);
+
+// ---------------- Auth de tienda ----------------
+if (!STORE_KEY) {
+  console.warn("[nickys] ⚠️  STORE_KEY no configurado — /store open (dev mode). Define STORE_KEY en producción.");
+}
+
+function safeEqual(a, b) {
+  const ba = Buffer.from(String(a));
+  const bb = Buffer.from(String(b));
+  return ba.length === bb.length && crypto.timingSafeEqual(ba, bb);
+}
+
+// Protege las APIs de tienda. Acepta header x-store-key (página)
+// o ?key= (EventSource no puede enviar headers).
+function requireStore(req, res, next) {
+  if (!STORE_KEY) return next(); // modo desarrollo
+  const k = req.headers["x-store-key"] || req.query.key || "";
+  if (k && safeEqual(k, STORE_KEY)) return next();
+  return res.status(401).json({ error: "Not authorized." });
+}
+
+// ---------------- SSE (eventos en vivo) ----------------
+const sseClients = [];
+function broadcast(event, data) {
+  const payload = `event: ${event}\ndata: ${JSON.stringify(data)}\n\n`;
+  for (let i = sseClients.length - 1; i >= 0; i--) {
+    try {
+      sseClients[i].write(payload);
+    } catch (e) {
+      sseClients.splice(i, 1);
+    }
+  }
+}
+
+app.get("/api/events", requireStore, (req, res) => {
+  res.writeHead(200, {
+    "Content-Type": "text/event-stream",
+    "Cache-Control": "no-cache",
+    Connection: "keep-alive",
+    "X-Accel-Buffering": "no"
+  });
+  res.write(`event: connected\ndata: ${JSON.stringify({ ok: true })}\n\n`);
+  sseClients.push(res);
+  const heartbeat = setInterval(() => {
+    try { res.write(`event: ping\ndata: {}\n\n`); } catch (e) { clearInterval(heartbeat); }
+  }, 25000);
+  req.on("close", () => {
+    clearInterval(heartbeat);
+    const i = sseClients.indexOf(res);
+    if (i >= 0) sseClients.splice(i, 1);
+  });
+});
+
+// ---------------- API: catálogo ----------------
+app.get("/api/catalog", async (req, res) => {
+  res.json(await db.getCatalog());
+});
+
+app.put("/api/catalog", requireStore, async (req, res) => {
+  const cat = req.body;
+  if (!cat || !Array.isArray(cat.departments)) {
+    return res.status(400).json({ error: "Invalid catalog format." });
+  }
+  await db.setCatalog(cat);
+  broadcast("catalog-updated", { at: new Date().toISOString() });
+  res.json({ ok: true });
+});
+
+// ---------------- API: ajustes (público lee, tienda escribe) ----------------
+app.get("/api/settings", async (req, res) => {
+  res.json({ zelle_handle: (await db.kvGet("zelle_handle")) || "" });
+});
+
+app.post("/api/settings", requireStore, async (req, res) => {
+  const handle = String((req.body && req.body.zelle_handle) || "").trim();
+  await db.kvSet("zelle_handle", handle);
+  res.json({ ok: true, zelle_handle: handle });
+});
+
+// ---------------- API: pedidos ----------------
+const VALID_STATUS = ["nuevo", "preparando", "listo", "entregado", "cancelado", "pendiente_pago"];
+
+function findItem(catalog, itemId) {
+  for (const d of catalog.departments || []) {
+    for (const c of d.categories || []) {
+      for (const it of c.items || []) {
+        if (it.id === itemId) return it;
+      }
+    }
+  }
+  return null;
+}
+
+// Público: los clientes crean pedidos sin clave.
+// Solo recogida (Portal, 2026-09-28) — delivery eliminado del storefront.
+app.post("/api/orders", async (req, res) => {
+  const { type, items, customer, payment, notes } = req.body || {};
+
+  if (type !== "pickup") {
+    return res.status(400).json({ error: "Tipo de pedido inválido." });
+  }
+  if (!Array.isArray(items) || items.length === 0) {
+    return res.status(400).json({ error: "El pedido no tiene artículos." });
+  }
+  if (!customer || !String(customer.name || "").trim() || !String(customer.phone || "").trim()) {
+    return res.status(400).json({ error: "Nombre y teléfono son obligatorios." });
+  }
+  if (payment !== "cash" && payment !== "transfer") {
+    return res.status(400).json({ error: "Método de pago inválido." });
+  }
+
+  // Resolver artículos contra el catálogo (precio al momento del pedido)
+  const catalog = await db.getCatalog();
+  const resolved = [];
+  for (const line of items) {
+    const item = findItem(catalog, line.itemId);
+    if (!item || !item.active) {
+      return res.status(400).json({ error: `Artículo no disponible: ${line.itemId}` });
+    }
+    const qty = Number(line.qty);
+    if (!qty || qty <= 0) {
+      return res.status(400).json({ error: "Cantidad inválida." });
+    }
+    resolved.push({
+      itemId: item.id,
+      name: item.name,
+      price: item.price,
+      unit: item.unit,
+      qty,
+      note: String(line.note || "").slice(0, 200),
+      subtotal: Math.round(item.price * qty * 100) / 100
+    });
+  }
+
+  const number = await db.nextOrderNumber();
+  const total = Math.round(resolved.reduce((s, l) => s + l.subtotal, 0) * 100) / 100;
+
+  const order = await db.createOrder({
+    number,
+    type,
+    items: resolved,
+    customer: {
+      name: String(customer.name).trim().slice(0, 80),
+      phone: String(customer.phone).trim().slice(0, 30),
+      address: String(customer.address || "").trim().slice(0, 200)
+    },
+    payment,
+    status: payment === "transfer" ? "pendiente_pago" : "nuevo",
+    notes: String(notes || "").slice(0, 500)
+  });
+  order.total = total;
+
+  broadcast("new-order", order);
+  res.status(201).json(order);
+});
+
+// Solo tienda:
+// Limpieza total del historial (boton "Limpiar historial" en /tienda).
+app.delete("/api/orders", requireStore, async (req, res) => {
+  await db.deleteAllOrders();
+  broadcast("orders-cleared", {});
+  res.json({ ok: true });
+});
+
+app.get("/api/orders", requireStore, async (req, res) => {
+  res.json(await db.listOrders());
+});
+
+// Público: seguimiento de pedido (/sigue).
+// Solo devuelve el pedido si NÚMERO + TELÉFONO coinciden exactamente.
+// Nunca lista pedidos de otros clientes. Campos sensibles (teléfono,
+// dirección, notas internas) jamás se exponen aquí.
+app.get("/api/track", async (req, res) => {
+  let number = String(req.query.number || "").trim();
+  const phone = String(req.query.phone || "").trim();
+  if (!number || !phone) {
+    return res.status(400).json({ error: "Número de pedido y teléfono son obligatorios." });
+  }
+  if (!number.startsWith("#")) number = "#" + number;
+  const digits = s => String(s || "").replace(/\D/g, "");
+  if (!digits(phone)) {
+    return res.status(400).json({ error: "Teléfono inválido." });
+  }
+  const order = await db.getOrderByNumber(number);
+  if (!order || digits(order.customer.phone) !== digits(phone)) {
+    return res.status(404).json({ error: "No encontramos ese pedido. Revisa el número y el teléfono." });
+  }
+  const total = Math.round(order.items.reduce((s, l) => s + (l.subtotal || 0), 0) * 100) / 100;
+  res.json({
+    number: order.number,
+    status: order.status,
+    type: order.type,
+    payment: order.payment,
+    total,
+    items: order.items.map(l => ({ name: l.name, qty: l.qty })),
+    name: order.customer.name,
+    created_at: order.created_at
+  });
+});
+
+app.patch("/api/orders/:id", requireStore, async (req, res) => {
+  const { status } = req.body || {};
+  if (!VALID_STATUS.includes(status)) {
+    return res.status(400).json({ error: "Invalid status." });
+  }
+  const updated = await db.updateOrderStatus(req.params.id, status);
+  if (!updated) return res.status(404).json({ error: "Order not found." });
+  broadcast("order-status", updated);
+  res.json(updated);
+});
+
+// ---------------- Páginas ----------------
+app.use(express.static(path.join(__dirname, "public")));
+app.get("/store", (req, res) => {
+  res.sendFile(path.join(__dirname, "public", "store.html"));
+});
+// Legacy alias: /tienda redirects to /store
+app.get("/tienda", (req, res) => res.redirect(301, "/store"));
+
+// ---------------- Arranque ----------------
+db.init().then(() => {
+  app.listen(PORT, () => {
+    console.log(`[nickys] Servidor corriendo en http://localhost:${PORT}`);
+    console.log(`[nickys] Clientes: http://localhost:${PORT}/`);
+    console.log(`[nickys] Store:    http://localhost:${PORT}/store`);
+  });
+}).catch((err) => {
+  console.error("[nickys] ❌ No se pudo inicializar la base de datos:", err.message);
+  console.error("[nickys] Revisa DATABASE_URL (Postgres) o los permisos del archivo nickys.db (SQLite).");
+  process.exit(1);
+});
