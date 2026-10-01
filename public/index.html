@@ -145,6 +145,13 @@
   .celebrate h3 { font-size:24px; margin:10px 0 6px; color:var(--caramel-d); }
   .celebrate p { font-size:14px; color:var(--txt); margin:0; }
   .track-cancel { background:#f7e3e3; border:2px solid #c0392b; border-radius:16px; padding:20px; margin-top:16px; text-align:center; }
+  /* ---- Group order share ---- */
+  .share-fab { margin-left:auto; flex:0 0 auto; display:flex; flex-direction:column; align-items:center; gap:2px; background:linear-gradient(135deg,var(--gold),var(--caramel)); border:none; border-radius:14px; padding:10px 12px; font-size:20px; cursor:pointer; box-shadow:0 2px 8px rgba(0,0,0,.4); }
+  .share-fab span { font-size:10px; font-weight:800; color:#2a0d00; line-height:1.15; text-align:center; }
+  .share-fab:active { filter:brightness(.92); }
+  .share-qr { width:200px; height:200px; border-radius:12px; background:#fff; padding:10px; margin:6px auto; display:block; }
+  .share-linkrow { display:flex; gap:8px; align-items:center; justify-content:center; flex-wrap:wrap; margin-top:8px; }
+  #share-link { flex:1 1 200px; max-width:280px; background:#0d0806; border:1px solid var(--line); color:var(--txt); border-radius:10px; padding:12px; font-size:13px; }
 </style>
 </head>
 <body>
@@ -155,6 +162,7 @@
       <h1>🔔 Nicky's <span>Philadelphia Cheesesteaks</span></h1>
       <p>Order direct & save — real Philly cheesesteaks in Miami 🔥<br>📍 34 NW 29th St, Miami<br>🕐 Open daily · 11am–10pm · 📸 @nickysphillysteaks</p>
     </div>
+    <button class="share-fab" onclick="openShare()" aria-label="Share Nicky's with your group">📤<span>Group<br>order</span></button>
   </div>
 </header>
 <img class="hero" src="images/hero-cheesesteak.jpg" alt="Philly cheesesteak with melted cheese, chips and ice-cold drinks">
@@ -577,6 +585,23 @@ async function lookupOrder() {
   } catch (err) { e.style.display = "block"; e.textContent = "⚠️ " + err.message; }
 }
 </script>
+<!-- Group order share modal (Portal, 2026-10-01) — DoorDash-style invite: link + QR so the crew orders together -->
+<div class="d-ov" id="share-ov" onclick="if(event.target===this)closeShare()">
+  <div class="d-card">
+    <div class="d-body" style="text-align:center">
+      <button class="d-close" onclick="closeShare()">✕</button>
+      <div class="d-name">Ordering as a group? 👥</div>
+      <div class="d-desc" style="margin:8px 0 4px">Share this link with the crew — everyone orders on their own phone, Nicky's fires it all up. 🔔</div>
+      <img class="share-qr" src="images/share-qr.png" alt="Scan to order at Nicky's">
+      <div class="d-desc" style="font-weight:800;margin-top:4px">Share link to group order</div>
+      <div class="share-linkrow">
+        <input id="share-link" readonly value="https://nickys-orders.onrender.com/" onclick="this.select()">
+        <button class="btn btn-p" id="share-copy" style="padding:12px 18px" onclick="copyShareLink()">Copy Link</button>
+      </div>
+      <button class="btn btn-g" style="width:100%;margin-top:12px" onclick="nativeShare()">📤 Share to the crew</button>
+    </div>
+  </div>
+</div>
 <!-- Product detail modal -->
 <div class="d-ov" id="d-ov" onclick="if(event.target===this)closeDetail()">
   <div class="d-card">
@@ -602,6 +627,31 @@ async function lookupOrder() {
 </div>
 <script>
 let detailId = null;
+
+// ---- Group order share (Portal, 2026-10-01) ----
+const SHARE_URL = "https://nickys-orders.onrender.com/";
+function openShare() { $("share-ov").classList.add("on"); document.body.style.overflow = "hidden"; }
+function closeShare() { $("share-ov").classList.remove("on"); document.body.style.overflow = ""; }
+function flashCopyBtn() {
+  const b = $("share-copy"); const t = b.textContent;
+  b.textContent = "Copied ✓"; setTimeout(() => { b.textContent = t; }, 1600);
+}
+function copyShareLink() {
+  const done = () => flashCopyBtn();
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(SHARE_URL).then(done).catch(() => fallbackCopy(done));
+  } else fallbackCopy(done);
+}
+function fallbackCopy(done) {
+  const i = $("share-link"); i.focus(); i.select();
+  try { document.execCommand("copy"); } catch (e) {}
+  done();
+}
+function nativeShare() {
+  if (navigator.share) {
+    navigator.share({ title: "Nicky's Philadelphia Cheesesteaks", text: "Order with me at Nicky's 👥🔔", url: SHARE_URL }).catch(() => {});
+  } else copyShareLink();
+}
 
 // ---- Combo builder: tap-to-pick cheese, chips, drink & toppings (Portal, 2026-10-01) ----
 // One flat price ($21.24) no matter how the customer builds it. Picks are
