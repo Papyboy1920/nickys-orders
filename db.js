@@ -417,6 +417,41 @@ function applyV7Fixes(catalog) {
   return n;
 }
 
+// ---------- Migración Nicky's v2 (2026-10-01, pedido de Portal) ----------
+// El combo pasa a constructor interactivo en el modal: la foto del ítem
+// cambia al cheesesteak real (combo-photo.jpg, sin el póster apilado) y la
+// descripción invita a tocar las opciones. El depto lleva la campana de
+// Philly (🔔) en vez del bistec. Owner-safe: cada campo solo cambia si su
+// valor actual es EXACTAMENTE el de la semilla v1. Idempotente.
+const NICKY_V2_DEPT_FIXES = {
+  "combos": { icon: ["🥩", "🔔"] }
+};
+const NICKY_V2_ITEM_FIXES = {
+  "cheesesteak-combo": {
+    image: ["combo-builder.jpg", "combo-photo.jpg"],
+    desc: ["Our legendary Philly cheesesteak + crispy chips + an ice-cold drink. BUILD IT YOUR WAY — 🧀 Cheese: Cooper Sharp / Provolone / American / No cheese · 🥔 Chips: Plain / BBQ · 🥤 Drink: Pepsi / Crush Orange / Fiji Water · 🌶️ Toppings: fried onions, sweet peppers, hot peppers, mayo, ketchup. 👉 Write your picks in the order notes at checkout!",
+           "Our legendary Philly cheesesteak + crispy chips + an ice-cold drink. 👇 BUILD IT YOUR WAY — tap your cheese, chips, drink and toppings below. One flat price: $21.24, however you build it."]
+  }
+};
+function applyNickyV2(catalog) {
+  let n = 0;
+  for (const d of (catalog && catalog.departments) || []) {
+    const dfx = d && NICKY_V2_DEPT_FIXES[d.id];
+    if (dfx && d.icon === dfx.icon[0]) { d.icon = dfx.icon[1]; n++; }
+    for (const c of d.categories || []) {
+      for (const it of c.items || []) {
+        const fx = it && NICKY_V2_ITEM_FIXES[it.id];
+        if (!fx) continue;
+        for (const f of ["image", "desc"]) {
+          const pair = fx[f];
+          if (pair && it[f] === pair[0]) { it[f] = pair[1]; n++; }
+        }
+      }
+    }
+  }
+  return n;
+}
+
 async function init() {
   if (process.env.DATABASE_URL) {
     const { Pool } = require("pg");
@@ -454,9 +489,10 @@ async function init() {
       const esn = applySpanishMigration(m.catalog);
       const v7 = applyV7Fixes(m.catalog);
       const reo = applyDeptOrder(m.catalog);
+      const nv2 = applyNickyV2(m.catalog);
       await kvSet("catalog", JSON.stringify(m.catalog));
       await kvSet("catalog_version", String(CATALOG_VERSION));
-      console.log(`[nickys] Catálogo fusionado (v${v} → v${CATALOG_VERSION}): +${m.added} nuevos, ${m.filled} campos rellenados, ${fx} fotos corregidas, ${dfx} tiles depto corregidos, ${esn} campos traducidos, ${v7} correcciones v7${reo ? ", Especiales de la Cocina Caliente al frente" : ""}. Lo del dueño intacto.`);
+      console.log(`[nickys] Catálogo fusionado (v${v} → v${CATALOG_VERSION}): +${m.added} nuevos, ${m.filled} campos rellenados, ${fx} fotos corregidas, ${dfx} tiles depto corregidos, ${esn} campos traducidos, ${v7} correcciones v7${reo ? ", Especiales de la Cocina Caliente al frente" : ""}${nv2 ? ", " + nv2 + " ajustes Nicky's v2" : ""}. Lo del dueño intacto.`);
     }
   }
   if (!(await kvGet("order_seq"))) await kvSet("order_seq", "0");
