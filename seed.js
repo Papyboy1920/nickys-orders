@@ -13,7 +13,7 @@
 // Demo #19 — built by Portal's direct order, Sep 29 2026.
 // ============================================================
 
-const CATALOG_VERSION = 3;
+const CATALOG_VERSION = 4;
 
 const SEED_CATALOG = {
   departments: [
@@ -76,16 +76,16 @@ const SEED_CATALOG = {
           items: [
             { id: "philly-sandwich", name: "The Philly Cheesesteak", price: 17.99, unit: "sandwich", active: true, image: "hero-cheesesteak.jpg",
               tag: "👥 Group favorite",
-              desc: "The legendary Philly, solo — juicy steak, melted cheese, fresh-baked roll. Perfect when the crew orders together." }
+              desc: "The legendary Philly, solo — juicy steak, melted cheese, fresh-baked roll. 👇 BUILD IT YOUR WAY — tap your cheese and toppings below. One flat price: $17.99, however you build it." }
           ]
         },
         {
           id: "sides",
           name: "Sides",
           items: [
-            { id: "onion-rings", name: "Fire Onion Rings", price: 4.99, unit: "basket", active: true, image: "side-onion-rings.jpg",
+            { id: "onion-rings", name: "Fire Onion Rings", price: 5.99, unit: "basket", active: true, image: "side-onion-rings.jpg",
               tag: "🔥 New",
-              desc: "Thick-cut, golden, dangerously crispy. A full basket of fire. 🔥" }
+              desc: "Thick-cut, golden and crispy, tossed in fire seasoning — includes Nicky's special sauce for dipping. A full basket of fire. 🔥" }
           ]
         }
       ]
