@@ -657,50 +657,62 @@ document.addEventListener("keydown", (e) => {
   if (e.key === "Escape") { closeShare(); if (typeof closeDetail === "function") closeDetail(); }
 });
 
-// ---- Combo builder: tap-to-pick cheese, chips, drink & toppings (Portal, 2026-10-01) ----
-// One flat price ($21.24) no matter how the customer builds it. Picks are
+// ---- Item builders: tap-to-pick cheese & toppings (Portal, 2026-10-01) ----
+// One flat price no matter how the customer builds it. Picks are
 // composed into the order note so the kitchen sees them line by line.
-const COMBO_ID = "cheesesteak-combo";
-const COMBO_GROUPS = [
-  { key: "cheese",   title: "🧀 Cheese — pick one",   type: "one",  opts: ["Cooper Sharp", "Provolone", "American", "No cheese"] },
-  { key: "chips",    title: "🥔 Chips — pick one",    type: "one",  opts: ["Plain", "BBQ"] },
-  { key: "drink",    title: "🥤 Drink — pick one",    type: "one",  opts: ["Pepsi", "Crush Orange", "Fiji Water"] },
-  { key: "toppings", title: "🌶️ Toppings — pick any", type: "many", opts: ["Fried onions", "Sweet peppers", "Hot peppers", "Mayo", "Ketchup"] }
-];
-let comboSel = null;    // { cheese, chips, drink, toppings: [] }
-let comboExtra = "";    // free text the customer adds on top of the picks
-function comboDefaults() {
-  return { cheese: "Cooper Sharp", chips: "Plain", drink: "Pepsi", toppings: ["Fried onions", "Sweet peppers"] };
+const BUILDER_GROUPS = {
+  "cheesesteak-combo": [
+    { key: "cheese",   title: "🧀 Cheese — pick one",   type: "one",  opts: ["Cooper Sharp", "Provolone", "American", "No cheese"] },
+    { key: "chips",    title: "🥔 Chips — pick one",    type: "one",  opts: ["Plain", "BBQ"] },
+    { key: "drink",    title: "🥤 Drink — pick one",    type: "one",  opts: ["Pepsi", "Crush Orange", "Fiji Water"] },
+    { key: "toppings", title: "🌶️ Toppings — pick any", type: "many", opts: ["Fried onions", "Sweet peppers", "Hot peppers", "Mayo", "Ketchup"] }
+  ],
+  "philly-sandwich": [
+    { key: "cheese",   title: "🧀 Cheese — pick one",   type: "one",  opts: ["Cooper Sharp", "Provolone", "American", "No cheese"] },
+    { key: "toppings", title: "🌶️ Toppings — pick any", type: "many", opts: ["Fried onions", "Sweet peppers", "Hot peppers", "Mayo", "Ketchup"] }
+  ]
+};
+let builderId = null;   // item id currently being built (null = plain modal)
+let builderSel = null;  // { cheese, chips?, drink?, toppings: [] }
+let builderExtra = "";  // free text the customer adds on top of the picks
+function builderDefaults(id) {
+  const d = { cheese: "Cooper Sharp", toppings: ["Fried onions", "Sweet peppers"] };
+  if (id === "cheesesteak-combo") { d.chips = "Plain"; d.drink = "Pepsi"; }
+  return d;
 }
 function escAttr(s) { return String(s == null ? "" : s).replace(/'/g, "\\'").replace(/"/g, "&quot;"); }
-function renderComboOpts() {
+function renderBuilderOpts() {
   const box = $("d-opts");
-  box.innerHTML = COMBO_GROUPS.map(g => {
+  box.innerHTML = BUILDER_GROUPS[builderId].map(g => {
     const pills = g.opts.map(o => {
-      const sel = g.type === "one" ? comboSel[g.key] === o : comboSel[g.key].indexOf(o) >= 0;
-      return `<button class="opt-pill${sel ? " sel" : ""}" onclick="comboPick('${g.key}','${escAttr(o)}',${g.type === "many"})"><span class="ck">${sel ? "✓ " : ""}</span>${esc(o)}</button>`;
+      const sel = g.type === "one" ? builderSel[g.key] === o : builderSel[g.key].indexOf(o) >= 0;
+      return `<button class="opt-pill${sel ? " sel" : ""}" onclick="builderPick('${g.key}','${escAttr(o)}',${g.type === "many"})"><span class="ck">${sel ? "✓ " : ""}</span>${esc(o)}</button>`;
     }).join("");
     return `<div class="opt-group"><div class="opt-gt">${g.title}</div><div class="opt-pills">${pills}</div></div>`;
   }).join("");
 }
-function comboPick(key, opt, many) {
+function builderPick(key, opt, many) {
   if (many) {
-    const a = comboSel[key], i = a.indexOf(opt);
+    const a = builderSel[key], i = a.indexOf(opt);
     if (i >= 0) a.splice(i, 1); else a.push(opt);
   } else {
-    comboSel[key] = opt;
+    builderSel[key] = opt;
   }
-  renderComboOpts();
-  composeComboNote();
+  renderBuilderOpts();
+  composeBuilderNote();
 }
-function comboNoteText() {
-  const t = comboSel.toppings.length ? comboSel.toppings.join(", ") : "no toppings";
-  return `🧀 ${comboSel.cheese} · 🥔 ${comboSel.chips} chips · 🥤 ${comboSel.drink} · 🌶️ ${t}`;
+function builderNoteText() {
+  const t = builderSel.toppings.length ? builderSel.toppings.join(", ") : "no toppings";
+  const parts = [`🧀 ${builderSel.cheese}`];
+  if (builderSel.chips) parts.push(`🥔 ${builderSel.chips} chips`);
+  if (builderSel.drink) parts.push(`🥤 ${builderSel.drink}`);
+  parts.push(`🌶️ ${t}`);
+  return parts.join(" · ");
 }
-function composeComboNote() {
-  if (!detailId || detailId !== COMBO_ID) return;
-  const c = cart[detailId] || (cart[detailId] = { qty: 0, note: "" });
-  c.note = comboNoteText() + (comboExtra ? " · ✏️ " + comboExtra : "");
+function composeBuilderNote() {
+  if (!builderId) return;
+  const c = cart[builderId] || (cart[builderId] = { qty: 0, note: "" });
+  c.note = builderNoteText() + (builderExtra ? " · ✏️ " + builderExtra : "");
   updateBar();
 }
 
@@ -715,16 +727,18 @@ function openDetail(id) {
   $("d-price").innerHTML = fmt(it.price) + " <small>/" + esc(it.unit) + "</small>";
   $("d-pend").innerHTML = it.pending ? `<div><span class="tag pending">⚠️ ${esc(it.note || "Precio por confirmar")}</span></div>` : "";
   $("d-desc").textContent = it.desc || "Ask the store about this item.";
-  const isCombo = id === COMBO_ID;
-  if (isCombo) {
-    comboSel = comboDefaults();
-    comboExtra = "";
+  const isBuilder = !!BUILDER_GROUPS[id];
+  if (isBuilder) {
+    builderId = id;
+    builderSel = builderDefaults(id);
+    builderExtra = "";
     $("d-note").value = "";
     $("d-note").placeholder = "Anything else? (optional)";
     $("d-opts").style.display = "block";
-    renderComboOpts();
-    composeComboNote();
+    renderBuilderOpts();
+    composeBuilderNote();
   } else {
+    builderId = null;
     $("d-opts").style.display = "none";
     $("d-opts").innerHTML = "";
     $("d-note").placeholder = "Note (optional): e.g. extra cheese";
@@ -736,8 +750,8 @@ function openDetail(id) {
 function refreshDetail() {
   const c = cart[detailId] || { qty: 0, note: "" };
   $("d-qty").textContent = c.qty;
-  if (detailId === COMBO_ID) {
-    if ($("d-note").value !== comboExtra) $("d-note").value = comboExtra;
+  if (builderId) {
+    if ($("d-note").value !== builderExtra) $("d-note").value = builderExtra;
   } else if ($("d-note").value !== (c.note || "")) {
     $("d-note").value = c.note || "";
   }
@@ -745,10 +759,10 @@ function refreshDetail() {
 function dQty(d) { if (!detailId) return; chQty(detailId, d); refreshDetail(); }
 function dNote(v) {
   if (!detailId) return;
-  if (detailId === COMBO_ID) { comboExtra = v; composeComboNote(); return; }
+  if (builderId) { builderExtra = v; composeBuilderNote(); return; }
   const c = cart[detailId] || (cart[detailId] = { qty: 0, note: "" }); c.note = v; updateBar();
 }
-function closeDetail() { detailId = null; $("d-ov").classList.remove("on"); document.body.style.overflow = ""; renderItems(); }
+function closeDetail() { detailId = null; builderId = null; $("d-ov").classList.remove("on"); document.body.style.overflow = ""; renderItems(); }
 </script>
 </body>
 </html>
