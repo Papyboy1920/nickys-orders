@@ -452,6 +452,37 @@ function applyNickyV2(catalog) {
   return n;
 }
 
+// Nicky's v3 (Portal, 2026-10-01): sandwich gets the builder write-up,
+// onion rings go to $5.99 with the special-sauce description.
+// Exact-match only: owner-customized fields are never touched.
+const NICKY_V3_ITEM_FIXES = {
+  "philly-sandwich": {
+    desc: ["The legendary Philly, solo — juicy steak, melted cheese, fresh-baked roll. Perfect when the crew orders together.",
+           "The legendary Philly, solo — juicy steak, melted cheese, fresh-baked roll. 👇 BUILD IT YOUR WAY — tap your cheese and toppings below. One flat price: $17.99, however you build it."]
+  },
+  "onion-rings": {
+    price: [4.99, 5.99],
+    desc: ["Thick-cut, golden, dangerously crispy. A full basket of fire. 🔥",
+           "Thick-cut, golden and crispy, tossed in fire seasoning — includes Nicky's special sauce for dipping. A full basket of fire. 🔥"]
+  }
+};
+function applyNickyV3(catalog) {
+  let n = 0;
+  for (const d of (catalog && catalog.departments) || []) {
+    for (const c of d.categories || []) {
+      for (const it of c.items || []) {
+        const fx = it && NICKY_V3_ITEM_FIXES[it.id];
+        if (!fx) continue;
+        for (const f of ["price", "desc"]) {
+          const pair = fx[f];
+          if (pair && it[f] === pair[0]) { it[f] = pair[1]; n++; }
+        }
+      }
+    }
+  }
+  return n;
+}
+
 async function init() {
   if (process.env.DATABASE_URL) {
     const { Pool } = require("pg");
@@ -490,9 +521,10 @@ async function init() {
       const v7 = applyV7Fixes(m.catalog);
       const reo = applyDeptOrder(m.catalog);
       const nv2 = applyNickyV2(m.catalog);
+      const nv3 = applyNickyV3(m.catalog);
       await kvSet("catalog", JSON.stringify(m.catalog));
       await kvSet("catalog_version", String(CATALOG_VERSION));
-      console.log(`[nickys] Catálogo fusionado (v${v} → v${CATALOG_VERSION}): +${m.added} nuevos, ${m.filled} campos rellenados, ${fx} fotos corregidas, ${dfx} tiles depto corregidos, ${esn} campos traducidos, ${v7} correcciones v7${reo ? ", Especiales de la Cocina Caliente al frente" : ""}${nv2 ? ", " + nv2 + " ajustes Nicky's v2" : ""}. Lo del dueño intacto.`);
+      console.log(`[nickys] Catálogo fusionado (v${v} → v${CATALOG_VERSION}): +${m.added} nuevos, ${m.filled} campos rellenados, ${fx} fotos corregidas, ${dfx} tiles depto corregidos, ${esn} campos traducidos, ${v7} correcciones v7${reo ? ", Especiales de la Cocina Caliente al frente" : ""}${nv2 ? ", " + nv2 + " ajustes Nicky's v2" : ""}${nv3 ? ", " + nv3 + " ajustes Nicky's v3" : ""}. Lo del dueño intacto.`);
     }
   }
   if (!(await kvGet("order_seq"))) await kvSet("order_seq", "0");
