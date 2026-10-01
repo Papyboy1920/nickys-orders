@@ -110,6 +110,15 @@
   .d-qty { font-size:22px; font-weight:800; min-width:30px; text-align:center; }
   .d-note { width:100%; box-sizing:border-box; margin:4px 0 12px; padding:10px; border-radius:10px; border:1.5px solid var(--line); background:var(--soft); color:var(--txt); font-size:14px; }
   .d-add { width:100%; padding:15px; border:none; border-radius:14px; font-size:17px; font-weight:800; cursor:pointer; background:linear-gradient(135deg,var(--caramel),var(--caramel-d)); color:#fff; }
+  /* ---- Combo builder: checkable options (Portal, 2026-10-01) ---- */
+  .d-opts { margin-top:6px; }
+  .opt-group { margin:13px 0; }
+  .opt-gt { font-size:13px; font-weight:800; margin-bottom:8px; color:var(--txt); }
+  .opt-pills { display:flex; flex-wrap:wrap; gap:8px; }
+  .opt-pill { border:2px solid var(--line); background:var(--soft); color:var(--txt); border-radius:999px; padding:9px 15px; font-size:13.5px; font-weight:600; cursor:pointer; font-family:inherit; }
+  .opt-pill:active { transform:scale(.96); }
+  .opt-pill.sel { border-color:var(--gold); background:linear-gradient(135deg,#c07a26,#96600f); color:#fff; box-shadow:0 0 0 1px var(--gold) inset; }
+  .opt-pill .ck { font-weight:800; }
   /* ---- Order tracker ---- */
   .track-link { display:block; text-align:center; margin-top:14px; color:#2a0d00; font-size:16px; font-weight:800; background:linear-gradient(135deg,var(--gold),var(--caramel)); border:none; border-radius:999px; cursor:pointer; width:100%; padding:14px 26px; box-shadow:0 3px 10px rgba(0,0,0,.35); }
   .track-card { background:var(--card); border:2px solid var(--line); border-radius:16px; padding:18px 14px; margin-top:16px; }
@@ -143,7 +152,7 @@
   <div style="display:flex;align-items:center;gap:12px">
     <img src="images/logo.png" alt="Nicky's Philadelphia Cheesesteaks" style="width:64px;height:64px;border-radius:50%;object-fit:cover;box-shadow:0 2px 10px rgba(0,0,0,.4);border:2px solid var(--gold)">
     <div>
-      <h1>🥩 Nicky's <span>Philadelphia Cheesesteaks</span></h1>
+      <h1>🔔 Nicky's <span>Philadelphia Cheesesteaks</span></h1>
       <p>Order direct & save — real Philly cheesesteaks in Miami 🔥<br>📍 34 NW 29th St, Miami<br>🕐 Open daily · 11am–10pm · 📸 @nickysphillysteaks</p>
     </div>
   </div>
@@ -153,16 +162,16 @@
 <main>
   <!-- STEP 1: order -->
   <section class="step on" id="s1">
-    <h2>Welcome to Nicky's! 🥩</h2>
+    <h2>Welcome to Nicky's! 🔔</h2>
     <div class="order-hero" id="tc-pickup" onclick="startPickup()" role="button" aria-label="Order here for pickup">
       <div class="oh-shade"></div>
       <div class="oh-body">
-        <div class="oh-t">Order here 🥩</div>
+        <div class="oh-t">Order here 🔔</div>
         <div class="oh-s">📍 Pickup at 34 NW 29th St, Miami</div>
         <span class="oh-cta">Start my order →</span>
       </div>
     </div>
-    <div class="note-box" style="margin-top:14px">🥩 <b>Hot off the grill.</b><br>Legendary Philly cheesesteaks, crispy chips & ice-cold drinks. 🔥</div>
+    <div class="note-box" style="margin-top:14px">🔔 <b>Hot off the grill.</b><br>Legendary Philly cheesesteaks, crispy chips & ice-cold drinks. 🔥</div>
     <button class="track-link" onclick="openLookup()">🔍 Already ordered? Track your order here</button>
   </section>
 
@@ -249,7 +258,7 @@
     <div id="track-view"></div>
   </section>
 
-  <div class="seed-tag">Prices in US$. Fired up fresh at Nicky's, Miami 🥩</div>
+  <div class="seed-tag">Prices in US$. Fired up fresh at Nicky's, Miami 🔔</div>
 </main>
 
 <div class="bar" id="bar" style="display:none">
@@ -424,7 +433,7 @@ function renderReview() {
     $("review").innerHTML =
       `<div class="ln"><span><b>🏪 For pickup</b></span><span>${payMethod === "cash" ? "💵 Cash" : "📱 Zelle"}</span></div>` +
       `<div style="text-align:center;padding:26px 12px">` +
-      `<div style="font-size:44px">🥩</div>` +
+      `<div style="font-size:44px">🔔</div>` +
       `<div style="font-weight:700;font-size:16px;margin:8px 0 4px">Your cart is empty</div>` +
       `<div style="font-size:13px;color:var(--mut)">You removed everything — head back to the menu and add something tasty.</div>` +
       `<button class="btn btn-p" style="margin-top:14px" onclick="go(2)">← Back to menu</button></div>`;
@@ -538,9 +547,9 @@ function renderTracker(mount, d) {
     <div class="track-head"><div class="tn">${d.number}</div><div class="ts">${d.name} · 🏪 Pickup · ${fmt(d.total)}</div></div>
     <div class="stages">${stagesHtml}</div>`;
   if (d.status === "listo") {
-    html += `<div class="celebrate"><div class="cj">🎉</div><h3>Your order is ready!</h3><p>Come grab it — it's hot! 🥩</p></div>`;
+    html += `<div class="celebrate"><div class="cj">🎉</div><h3>Your order is ready!</h3><p>Come grab it — it's hot! 🔔</p></div>`;
   } else if (d.status === "entregado") {
-    html += `<div class="track-live">✅ Enjoy! Thanks for ordering from Nicky's 🥩</div>`;
+    html += `<div class="track-live">✅ Enjoy! Thanks for ordering from Nicky's 🔔</div>`;
   } else {
     html += `<div class="track-live"><span class="blip"></span>Updating live…</div>`;
   }
@@ -580,6 +589,7 @@ async function lookupOrder() {
       <div id="d-pend"></div>
       <div class="d-sec">What's inside</div>
       <div class="d-desc" id="d-desc"></div>
+      <div class="d-opts" id="d-opts" style="display:none"></div>
       <div class="d-qtyrow">
         <button onclick="dQty(-1)">−</button>
         <div class="d-qty" id="d-qty">0</div>
@@ -592,6 +602,54 @@ async function lookupOrder() {
 </div>
 <script>
 let detailId = null;
+
+// ---- Combo builder: tap-to-pick cheese, chips, drink & toppings (Portal, 2026-10-01) ----
+// One flat price ($21.24) no matter how the customer builds it. Picks are
+// composed into the order note so the kitchen sees them line by line.
+const COMBO_ID = "cheesesteak-combo";
+const COMBO_GROUPS = [
+  { key: "cheese",   title: "🧀 Cheese — pick one",   type: "one",  opts: ["Cooper Sharp", "Provolone", "American", "No cheese"] },
+  { key: "chips",    title: "🥔 Chips — pick one",    type: "one",  opts: ["Plain", "BBQ"] },
+  { key: "drink",    title: "🥤 Drink — pick one",    type: "one",  opts: ["Pepsi", "Crush Orange", "Fiji Water"] },
+  { key: "toppings", title: "🌶️ Toppings — pick any", type: "many", opts: ["Fried onions", "Sweet peppers", "Hot peppers", "Mayo", "Ketchup"] }
+];
+let comboSel = null;    // { cheese, chips, drink, toppings: [] }
+let comboExtra = "";    // free text the customer adds on top of the picks
+function comboDefaults() {
+  return { cheese: "Cooper Sharp", chips: "Plain", drink: "Pepsi", toppings: ["Fried onions", "Sweet peppers"] };
+}
+function escAttr(s) { return String(s == null ? "" : s).replace(/'/g, "\\'").replace(/"/g, "&quot;"); }
+function renderComboOpts() {
+  const box = $("d-opts");
+  box.innerHTML = COMBO_GROUPS.map(g => {
+    const pills = g.opts.map(o => {
+      const sel = g.type === "one" ? comboSel[g.key] === o : comboSel[g.key].indexOf(o) >= 0;
+      return `<button class="opt-pill${sel ? " sel" : ""}" onclick="comboPick('${g.key}','${escAttr(o)}',${g.type === "many"})"><span class="ck">${sel ? "✓ " : ""}</span>${esc(o)}</button>`;
+    }).join("");
+    return `<div class="opt-group"><div class="opt-gt">${g.title}</div><div class="opt-pills">${pills}</div></div>`;
+  }).join("");
+}
+function comboPick(key, opt, many) {
+  if (many) {
+    const a = comboSel[key], i = a.indexOf(opt);
+    if (i >= 0) a.splice(i, 1); else a.push(opt);
+  } else {
+    comboSel[key] = opt;
+  }
+  renderComboOpts();
+  composeComboNote();
+}
+function comboNoteText() {
+  const t = comboSel.toppings.length ? comboSel.toppings.join(", ") : "no toppings";
+  return `🧀 ${comboSel.cheese} · 🥔 ${comboSel.chips} chips · 🥤 ${comboSel.drink} · 🌶️ ${t}`;
+}
+function composeComboNote() {
+  if (!detailId || detailId !== COMBO_ID) return;
+  const c = cart[detailId] || (cart[detailId] = { qty: 0, note: "" });
+  c.note = comboNoteText() + (comboExtra ? " · ✏️ " + comboExtra : "");
+  updateBar();
+}
+
 function openDetail(id) {
   const it = findItem(id); if (!it) return;
   detailId = id;
@@ -603,6 +661,20 @@ function openDetail(id) {
   $("d-price").innerHTML = fmt(it.price) + " <small>/" + esc(it.unit) + "</small>";
   $("d-pend").innerHTML = it.pending ? `<div><span class="tag pending">⚠️ ${esc(it.note || "Precio por confirmar")}</span></div>` : "";
   $("d-desc").textContent = it.desc || "Ask the store about this item.";
+  const isCombo = id === COMBO_ID;
+  if (isCombo) {
+    comboSel = comboDefaults();
+    comboExtra = "";
+    $("d-note").value = "";
+    $("d-note").placeholder = "Anything else? (optional)";
+    $("d-opts").style.display = "block";
+    renderComboOpts();
+    composeComboNote();
+  } else {
+    $("d-opts").style.display = "none";
+    $("d-opts").innerHTML = "";
+    $("d-note").placeholder = "Note (optional): e.g. extra cheese";
+  }
   refreshDetail();
   $("d-ov").classList.add("on");
   document.body.style.overflow = "hidden";
@@ -610,10 +682,18 @@ function openDetail(id) {
 function refreshDetail() {
   const c = cart[detailId] || { qty: 0, note: "" };
   $("d-qty").textContent = c.qty;
-  if ($("d-note").value !== (c.note || "")) $("d-note").value = c.note || "";
+  if (detailId === COMBO_ID) {
+    if ($("d-note").value !== comboExtra) $("d-note").value = comboExtra;
+  } else if ($("d-note").value !== (c.note || "")) {
+    $("d-note").value = c.note || "";
+  }
 }
 function dQty(d) { if (!detailId) return; chQty(detailId, d); refreshDetail(); }
-function dNote(v) { if (!detailId) return; const c = cart[detailId] || (cart[detailId] = { qty: 0, note: "" }); c.note = v; updateBar(); }
+function dNote(v) {
+  if (!detailId) return;
+  if (detailId === COMBO_ID) { comboExtra = v; composeComboNote(); return; }
+  const c = cart[detailId] || (cart[detailId] = { qty: 0, note: "" }); c.note = v; updateBar();
+}
 function closeDetail() { detailId = null; $("d-ov").classList.remove("on"); document.body.style.overflow = ""; renderItems(); }
 </script>
 </body>
