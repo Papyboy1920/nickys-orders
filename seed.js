@@ -13,23 +13,23 @@
 // Demo #19 — built by Portal's direct order, Sep 29 2026.
 // ============================================================
 
-const CATALOG_VERSION = 1;
+const CATALOG_VERSION = 2;
 
 const SEED_CATALOG = {
   departments: [
     {
       id: "combos",
       name: "Cheesesteak Combos",
-      icon: "🥩",
+      icon: "🔔",
       iconImg: "promo-direct.jpg",
       categories: [
         {
           id: "build-your-own",
           name: "Build your own",
           items: [
-            { id: "cheesesteak-combo", name: "The Cheesesteak Combo", price: 21.24, unit: "combo", active: true, image: "combo-builder.jpg",
+            { id: "cheesesteak-combo", name: "The Cheesesteak Combo", price: 21.24, unit: "combo", active: true, image: "combo-photo.jpg",
               tag: "⭐ Customer favorite",
-              desc: "Our legendary Philly cheesesteak + crispy chips + an ice-cold drink. BUILD IT YOUR WAY — 🧀 Cheese: Cooper Sharp / Provolone / American / No cheese · 🥔 Chips: Plain / BBQ · 🥤 Drink: Pepsi / Crush Orange / Fiji Water · 🌶️ Toppings: fried onions, sweet peppers, hot peppers, mayo, ketchup. 👉 Write your picks in the order notes at checkout!" }
+              desc: "Our legendary Philly cheesesteak + crispy chips + an ice-cold drink. 👇 BUILD IT YOUR WAY — tap your cheese, chips, drink and toppings below. One flat price: $21.24, however you build it." }
           ]
         }
       ]
