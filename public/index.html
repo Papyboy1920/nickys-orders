@@ -652,6 +652,10 @@ function nativeShare() {
     navigator.share({ title: "Nicky's Philadelphia Cheesesteaks", text: "Order with me at Nicky's 👥🔔", url: SHARE_URL }).catch(() => {});
   } else copyShareLink();
 }
+// Escape closes any open modal
+document.addEventListener("keydown", (e) => {
+  if (e.key === "Escape") { closeShare(); if (typeof closeDetail === "function") closeDetail(); }
+});
 
 // ---- Combo builder: tap-to-pick cheese, chips, drink & toppings (Portal, 2026-10-01) ----
 // One flat price ($21.24) no matter how the customer builds it. Picks are
