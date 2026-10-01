@@ -96,11 +96,11 @@
   /* ---- Product detail modal ---- */
   .d-ov { position:fixed; inset:0; background:rgba(0,0,0,.72); z-index:90; display:none; align-items:flex-end; justify-content:center; }
   .d-ov.on { display:flex; }
-  .d-card { background:var(--card); border:1.5px solid var(--line); border-bottom:none; border-radius:20px 20px 0 0; width:100%; max-width:520px; max-height:92vh; overflow-y:auto; animation:dsheet .22s ease-out; }
+  .d-card { position:relative; background:var(--card); border:1.5px solid var(--line); border-bottom:none; border-radius:20px 20px 0 0; width:100%; max-width:520px; max-height:92vh; overflow-y:auto; animation:dsheet .22s ease-out; }
   @keyframes dsheet { from { transform:translateY(40px); opacity:.4; } to { transform:none; opacity:1; } }
   .d-img { width:100%; height:230px; object-fit:cover; border-radius:20px 20px 0 0; display:block; }
   .d-body { padding:16px 18px 22px; position:relative; }
-  .d-close { position:absolute; top:-46px; right:12px; width:36px; height:36px; border-radius:50%; border:none; background:rgba(0,0,0,.55); color:#fff; font-size:17px; cursor:pointer; }
+  .d-close { position:absolute; top:10px; right:12px; z-index:5; width:36px; height:36px; border-radius:50%; border:none; background:rgba(0,0,0,.55); color:#fff; font-size:17px; cursor:pointer; }
   .d-name { font-size:21px; font-weight:800; margin:4px 0; color:var(--txt); }
   .d-price { font-size:19px; font-weight:800; color:var(--caramel-d); margin-bottom:6px; }
   .d-sec { margin-top:12px; font-size:12px; letter-spacing:1.5px; text-transform:uppercase; color:var(--mut); font-weight:700; }
@@ -588,8 +588,8 @@ async function lookupOrder() {
 <!-- Group order share modal (Portal, 2026-10-01) — DoorDash-style invite: link + QR so the crew orders together -->
 <div class="d-ov" id="share-ov" onclick="if(event.target===this)closeShare()">
   <div class="d-card">
+    <button class="d-close" onclick="closeShare()">✕</button>
     <div class="d-body" style="text-align:center">
-      <button class="d-close" onclick="closeShare()">✕</button>
       <div class="d-name">Ordering as a group? 👥</div>
       <div class="d-desc" style="margin:8px 0 4px">Share this link with the crew — everyone orders on their own phone, Nicky's fires it all up. 🔔</div>
       <img class="share-qr" src="images/share-qr.png" alt="Scan to order at Nicky's">
@@ -605,8 +605,8 @@ async function lookupOrder() {
 <!-- Product detail modal -->
 <div class="d-ov" id="d-ov" onclick="if(event.target===this)closeDetail()">
   <div class="d-card">
+    <button class="d-close" onclick="closeDetail()">✕</button>
     <div class="d-body">
-      <button class="d-close" onclick="closeDetail()">✕</button>
       <img class="d-img" id="d-img" alt="">
       <div id="d-tag"></div>
       <div class="d-name" id="d-name"></div>
